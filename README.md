@@ -1,8 +1,10 @@
 # MDC2_analysis_Ryan
 The Calibration_macro handles the analysis of calibration data of MDC2
 
-To compile : 
+To compile :
+
 source setup_pdsf.sh
+
 g++ -I /usr/common/usg/software/ROOT/6.04.00/include/ `root-config --cflags --libs` -o Calibraton_macro Calibraton_macro.cc rqlib/rqlib.so
 
 To execute : 
