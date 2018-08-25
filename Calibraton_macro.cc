@@ -55,7 +55,7 @@ using namespace std;
 
 // Functions prototype
 void load_chain(TString txtFileList, TChain* chain);
-void load_chain_by_name(TString inputName, TChain* chain, int nfiles);
+void load_chain_by_name(TString inputName, TChain* chain, int nfiles, int position);
 void eventLoop(TChain* events);
 
 /**
@@ -111,14 +111,14 @@ public:
     //BP
     vector<float> pulseArea_phd_ODLG, positiveArea_phd_ODLG, negativeArea_phd_ODLG;
     //RW
-    vector<float> pulseArea_phd_ODHG, positiveArea_phd_ODHG, negativeArea_phd_ODHG, chPeakTime_ns_ODHG, peakAmp_ODHG, rmsWidth_ns_ODHG;
-    vector<float> pulseArea_phd_Skin, positiveArea_phd_Skin, negativeArea_phd_Skin, chPeakTime_ns_Skin;
+    vector<float> pulseArea_phd_ODHG, positiveArea_phd_ODHG, negativeArea_phd_ODHG, peakAmp_ODHG, rmsWidth_ns_ODHG;
+    vector<float> pulseArea_phd_Skin, positiveArea_phd_Skin, negativeArea_phd_Skin;
 
     vector<vector<float>> chPulseArea_phd_ODHG;
     vector<vector<float>> chPulseArea_phd_Skin;
 
     //Channel pulse parameters
-    vector<vector<int>>   channelID_TPCHG, channelID_TPCLG, channelID_Skin, channelID_ODHG, channelID_ODLG, chPeakTime_ns_ODLG;
+    vector<vector<int>>   channelID_TPCHG, channelID_TPCLG, channelID_Skin, channelID_ODHG, channelID_ODLG, chPeakTime_ns_ODLG,chPeakTime_ns_ODHG, chPeakTime_ns_Skin;
 
     //bp
 
@@ -322,10 +322,12 @@ TH1D* CreateSumw2Hist(string hname,string Xname,string Yname, double Xbins, doub
 
 }
 static void show_usage(string name){
-    cout<<" Usage : ./ana_combine_root [-co] file1 "<<name<<" Options:\n"
+    cout<<" Usage : ./Calibration_macro [-co] "<<name<<" Options:\n"
     <<" -list : load the list of filename \n"
-    <<" -type : currently one can choose : AmLi700, Na22, background \n"
+    <<" -type : currently one can choose : AmLi, Na22, background \n"
     <<" -debug : debug mode \n"
+    <<" -o : out file name, if it is not assigned the default file name is [sourceName_position_numberfiles_calibration.root] \n"
+    <<" -p : position of the source (currently 700 0r 1336)\n"
     <<" -h or --help : Show the usage\n"
     <<" Enjoy ! -Ryan Wang"<<endl;
 }
@@ -353,6 +355,8 @@ int main(int argc, char* argv[])
     TString inputName;
     bool useList = false;
     bool debug = false;
+    bool custom_outname = false;
+    int position;
     int number_of_files = 0;
 
     if (argc<2){
@@ -367,6 +371,7 @@ int main(int argc, char* argv[])
         }
         else if (arg=="-o"){
             outname = argv[i+1];
+            custom_outname = true;
         }
         else if (arg=="-type"){
             inputName = argv[i+1];
@@ -376,6 +381,9 @@ int main(int argc, char* argv[])
         }
         else if (arg=="-debug"){
             debug = true;
+        }
+        else if (arg=="-p"){
+            position = atoi(argv[i+1]);
         }
         else if (arg=="-list"){
             txtFileList = argv[i+1] ;
@@ -389,9 +397,15 @@ int main(int argc, char* argv[])
     // exist: overwrite on it ("recreate" option)
     //------------------------------------------------
 
+    char temp_out[50];
+    if (custom_outname){
+        outfile = new TFile(outname, "recreate");
+    }
+    else{
+        sprintf(temp_out,"%s_%u_%ufiles_calibration.root",inputName.Data(),position,number_of_files);
+        outfile = new TFile(temp_out, "recreate");
+    }
 
-
-    outfile = new TFile(outname, "recreate");
     cout << "Writing output to: "<<outfile->GetName()<<endl;
 
     //------------------------------------------------
@@ -404,7 +418,7 @@ int main(int argc, char* argv[])
         load_chain(txtFileList, chain);
     }
     else {
-        load_chain_by_name(inputName, chain, number_of_files);
+        load_chain_by_name(inputName, chain, number_of_files, position);
     }
 
 
@@ -493,6 +507,34 @@ int main(int argc, char* argv[])
 
     //TH1D* h_pulseArea_phd_ODHG_3us_5us = Create1DHist("pulseArea_phd_ODHG_3us_5us"," Energy (phd) "," Counts (/phd) ", 3000, 0, 3000);
     TH2D* h_pulseRatio_time_ODHG = Create2DHist("h_pulseRatio_time_ODHG ", " pulse time "," pulse Height/pulseArea",5000, 0, 500,1000, 0, 0.1);
+    TH1D* h_channelPeakTime_20us = Create1DHist("channelPeakTime_20us"," Pulse Time (ns) "," Counts (/ns) ", 2000, 0, 20000);
+    TH1D* h_pulseArea_phd_ODHG_int_1us = Create1DHist("pulseArea_phd_ODHG_int_1us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_2us = Create1DHist("pulseArea_phd_ODHG_int_2us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_3us = Create1DHist("pulseArea_phd_ODHG_int_3us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_30us = Create1DHist("pulseArea_phd_ODHG_int_30us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_130us = Create1DHist("pulseArea_phd_ODHG_int_130us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_230us = Create1DHist("pulseArea_phd_ODHG_int_230us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_330us = Create1DHist("pulseArea_phd_ODHG_int_330us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_500us = Create1DHist("pulseArea_phd_ODHG_int_500us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+
+    TH1D* h_pulseArea_phd_ODHG_int_1000us = Create1DHist("pulseArea_phd_ODHG_int_1000us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_1500us = Create1DHist("pulseArea_phd_ODHG_int_1500us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_2000us = Create1DHist("pulseArea_phd_ODHG_int_2000us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_2500us = Create1DHist("pulseArea_phd_ODHG_int_2500us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_3000us = Create1DHist("pulseArea_phd_ODHG_int_3000us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODHG_int_3700us = Create1DHist("pulseArea_phd_ODHG_int_3700us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+
+    TH1D* h_pulseArea_phd_ODLG_int_1us = Create1DHist("pulseArea_phd_ODLG_int_1us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODLG_int_2us = Create1DHist("pulseArea_phd_ODLG_int_2us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODLG_int_3us = Create1DHist("pulseArea_phd_ODLG_int_3us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+    TH1D* h_pulseArea_phd_ODLG_int_30us = Create1DHist("pulseArea_phd_ODLG_int_30us"," pulse area (phd)"," Counts (/phd)",3000,0,3000);
+
+    TH1F* h_pulseArea_phd_ODLG_1us = new TH1F("pulseArea_phd_ODLG_1us", "pulseArea_phd_ODLG_1us", 3000, 0, 3000);
+    TH1F* h_pulseArea_phd_ODLG_2us = new TH1F("pulseArea_phd_ODLG_2us", "pulseArea_phd_ODLG_2us", 3000, 0, 3000);
+    TH1F* h_pulseArea_phd_ODLG_3us = new TH1F("pulseArea_phd_ODLG_3us", "pulseArea_phd_ODLG_3us", 3000, 0, 3000);
+    TH1F* h_pulseArea_phd_ODLG_310us = new TH1F("pulseArea_phd_ODLG_310us", "pulseArea_phd_ODLG_310us", 3000, 0, 3000);
+
+
     //vector of histos
     std::vector <TH1D*> hvec_chPulseArea_phd_OD;
     for (int i=0; i<120; ++i){
@@ -535,7 +577,11 @@ int main(int argc, char* argv[])
     float_t pulseArea_phd_ODHG_5mus_temp=0;
     float_t total_pulse_NegareLG=0,total_pulse_PosareLG=0;
     float_t total_pulse_areaLG = 0;
+    float_t Int_window_ODHG_1us=0,Int_window_ODHG_2us=0,Int_window_ODHG_3us=0,Int_window_ODHG_30us=0,Int_window_ODHG_130us=0,Int_window_ODHG_230us=0,Int_window_ODHG_330us=0,Int_window_ODHG_500us=0;
     float_t pulseArea_phd_ODHG_3us=0,pulseArea_phd_ODHG_2us=0,pulseArea_phd_ODHG_1us=0,pulseArea_phd_ODHG_310us=0;
+    float_t Int_window_ODHG_1000us=0,Int_window_ODHG_1500us=0,Int_window_ODHG_2000us=0,Int_window_ODHG_2500us=0,Int_window_ODHG_3000us=0,Int_window_ODHG_3700us=0;
+    float_t pulseArea_phd_ODLG_3us=0,pulseArea_phd_ODLG_2us=0,pulseArea_phd_ODLG_1us=0,pulseArea_phd_ODLG_310us=0;
+    float_t Int_window_ODLG_1us=0,Int_window_ODLG_2us=0,Int_window_ODLG_3us=0,Int_window_ODLG_30us=0;
     //  for (Int_t n=0; n<1000; ++n) {
     for (Int_t n=0; n<nevents; ++n) {
     if (n%1000 == 0) cout << "Processing "<< n << "/"<<nevents<<endl;
@@ -572,6 +618,8 @@ int main(int argc, char* argv[])
         total_pulse_areaLG =0;
         total_pulse_PosareLG = 0;
         total_pulse_NegareLG = 0;
+        pulseArea_phd_ODLG_3us=0,pulseArea_phd_ODLG_2us=0,pulseArea_phd_ODLG_1us=0,pulseArea_phd_ODLG_310us=0;
+        Int_window_ODLG_1us=0,Int_window_ODLG_2us=0,Int_window_ODLG_3us=0,Int_window_ODLG_30us=0;
         if(evt->pulseStartTime_ns_ODLG[0] < firstPulseStart) firstPulseStart = evt->pulseStartTime_ns_ODLG[0];
         if(evt->pulseEndTime_ns_ODLG[(evt->nPulses_ODLG)-1] > lastPulseEnd) lastPulseEnd = evt->pulseEndTime_ns_ODLG[(evt->nPulses_ODLG)-1];
         h_triggerTimeStamp_s_ODLG->Fill(evt->triggerTimeStamp_s);
@@ -580,7 +628,41 @@ int main(int argc, char* argv[])
             total_pulse_PosareLG+=evt->positiveArea_phd_ODLG[ip];
             total_pulse_NegareLG+=evt->negativeArea_phd_ODLG[ip];
             h_pulseStartTime_ns_pulseArea_phd_ODLG->Fill(evt->pulseStartTime_ns_ODLG[ip],evt->pulseArea_phd_ODLG[ip]);
+
+
+            if (evt->pulseStartTime_ns_ODLG[ip]<10000 && evt->pulseStartTime_ns_ODLG[ip]>3000){
+                pulseArea_phd_ODLG_310us+=evt->pulseArea_phd_ODLG[ip];
+            }
+            if (evt->pulseStartTime_ns_ODLG[ip]<630 && evt->pulseStartTime_ns_ODLG[ip]>0){
+                pulseArea_phd_ODLG_1us+=evt->pulseArea_phd_ODLG[ip];
+            }
+            if (evt->pulseStartTime_ns_ODLG[ip]>630 && evt->pulseStartTime_ns_ODLG[ip]<1000){
+                pulseArea_phd_ODLG_2us+=evt->pulseArea_phd_ODLG[ip];
+            }
+            if (evt->pulseStartTime_ns_ODLG[ip]<3000 && evt->pulseStartTime_ns_ODLG[ip]>2200){
+                pulseArea_phd_ODLG_3us+=evt->pulseArea_phd_ODLG[ip];
+            }
+
+            if (evt->pulseStartTime_ns_ODLG[ip]>0 && evt->pulseStartTime_ns_ODLG[ip]<600)
+                Int_window_ODLG_1us+=evt->pulseArea_phd_ODLG[ip];
+            if (evt->pulseStartTime_ns_ODLG[ip]>0 && evt->pulseStartTime_ns_ODLG[ip]<2000)
+                Int_window_ODLG_2us+=evt->pulseArea_phd_ODLG[ip];
+
+            if (evt->pulseStartTime_ns_ODLG[ip]>0 && evt->pulseStartTime_ns_ODLG[ip]<3000)
+                Int_window_ODLG_3us+=evt->pulseArea_phd_ODLG[ip];
+            if (evt->pulseStartTime_ns_ODLG[ip]>0 && evt->pulseStartTime_ns_ODLG[ip]<30000)
+                Int_window_ODLG_30us+=evt->pulseArea_phd_ODLG[ip];
         }
+
+        h_pulseArea_phd_ODLG_3us->Fill(pulseArea_phd_ODLG_3us);
+        h_pulseArea_phd_ODLG_2us->Fill(pulseArea_phd_ODLG_2us);
+        h_pulseArea_phd_ODLG_1us->Fill(pulseArea_phd_ODLG_1us);
+        h_pulseArea_phd_ODLG_310us->Fill(pulseArea_phd_ODLG_310us);
+
+        h_pulseArea_phd_ODLG_int_1us->Fill(Int_window_ODLG_1us);
+        h_pulseArea_phd_ODLG_int_2us->Fill(Int_window_ODLG_2us);
+        h_pulseArea_phd_ODLG_int_3us->Fill(Int_window_ODLG_3us);
+        h_pulseArea_phd_ODLG_int_30us->Fill(Int_window_ODLG_30us);
 
         h_pulseArea_phd_ODLG->Fill(total_pulse_areaLG);
         h_positiveArea_phd_ODLG->Fill(total_pulse_PosareLG);
@@ -599,11 +681,13 @@ int main(int argc, char* argv[])
         total_pulse_PosareHG = 0;
         total_pulse_NegareHG = 0;
         pulseArea_phd_ODHG_3us=0,pulseArea_phd_ODHG_2us=0,pulseArea_phd_ODHG_1us=0,pulseArea_phd_ODHG_310us=0;
+        Int_window_ODHG_1us=0,Int_window_ODHG_2us=0,Int_window_ODHG_3us=0,Int_window_ODHG_30us=0,Int_window_ODHG_130us=0,Int_window_ODHG_230us=0,Int_window_ODHG_330us=0,Int_window_ODHG_500us=0;
+        Int_window_ODHG_1000us=0,Int_window_ODHG_1500us=0,Int_window_ODHG_2000us=0,Int_window_ODHG_2500us=0,Int_window_ODHG_3000us=0,Int_window_ODHG_3700us=0;
         for (int ip=0;ip<evt->pulseArea_phd_ODHG.size();ip++){
             total_pulse_areaHG+=evt->pulseArea_phd_ODHG[ip];
             total_pulse_PosareHG+=evt->positiveArea_phd_ODHG[ip];
             total_pulse_NegareHG+=evt->negativeArea_phd_ODHG[ip];
-            h_startTime_ODHG->Fill(evt->pulseStartTime_ns_ODHG[ip]/1000);
+            h_startTime_ODHG->Fill(evt->pulseStartTime_ns_ODHG[ip]);
             h_pulseStartTime_ns_pulseArea_phd_ODHG->Fill(evt->pulseStartTime_ns_ODHG[ip],evt->pulseArea_phd_ODHG[ip]);
             h_pulse_amp_pulse_area_ODHG->Fill(evt->peakAmp_ODHG[ip]/evt->pulseArea_phd_ODHG[ip],evt->pulseArea_phd_ODHG[ip]);
             h_rmswdith_pulse_area_ODHG->Fill(evt->pulseArea_phd_ODHG[ip],(evt->pulseEndTime_ns_ODHG[ip]-evt->pulseStartTime_ns_ODHG[ip]));
@@ -633,10 +717,68 @@ int main(int argc, char* argv[])
                 total_pulse_areaHG_cut+=evt->pulseArea_phd_ODHG[ip];
             }
 
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<600)
+                Int_window_ODHG_1us+=evt->pulseArea_phd_ODHG[ip];
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<2000)
+                Int_window_ODHG_2us+=evt->pulseArea_phd_ODHG[ip];
+
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<3000)
+                Int_window_ODHG_3us+=evt->pulseArea_phd_ODHG[ip];
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<30000)
+                Int_window_ODHG_30us+=evt->pulseArea_phd_ODHG[ip];
+
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<130000)
+                Int_window_ODHG_130us+=evt->pulseArea_phd_ODHG[ip];
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<230000)
+                Int_window_ODHG_230us+=evt->pulseArea_phd_ODHG[ip];
+
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<330000)
+                Int_window_ODHG_330us+=evt->pulseArea_phd_ODHG[ip];
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<500000)
+                Int_window_ODHG_500us+=evt->pulseArea_phd_ODHG[ip];
+
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<1000000)
+                Int_window_ODHG_1000us+=evt->pulseArea_phd_ODHG[ip];
+
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<1500000)
+                Int_window_ODHG_1500us+=evt->pulseArea_phd_ODHG[ip];
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<2000000)
+                Int_window_ODHG_2000us+=evt->pulseArea_phd_ODHG[ip];
+
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<2500000)
+                Int_window_ODHG_2500us+=evt->pulseArea_phd_ODHG[ip];
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<3000000)
+                Int_window_ODHG_3000us+=evt->pulseArea_phd_ODHG[ip];
+            if (evt->pulseStartTime_ns_ODHG[ip]>0 && evt->pulseStartTime_ns_ODHG[ip]<3700000)
+                Int_window_ODHG_3700us+=evt->pulseArea_phd_ODHG[ip];
+            // Read pulses from each channel
+            if ((evt->peakAmp_ODHG[ip]/evt->pulseArea_phd_ODHG[ip]<0.015) && (evt->peakAmp_ODHG[ip]/evt->pulseArea_phd_ODHG[ip]>0.005)&& (evt->pulseArea_phd_ODHG[ip]>8)){
+                for (unsigned int ii=0; ii<evt->chPeakTime_ns_ODHG[ip].size(); ii++) {
+                    if (evt->chPeakTime_ns_ODHG[ip][ii] < 20000)
+                        h_channelPeakTime_20us->Fill(evt->chPeakTime_ns_ODHG[ip][ii]);
+                    }
+            }
         }
         h_pulseArea_phd_ODHG_3us->Fill(pulseArea_phd_ODHG_3us);
         h_pulseArea_phd_ODHG_2us->Fill(pulseArea_phd_ODHG_2us);
         h_pulseArea_phd_ODHG_1us->Fill(pulseArea_phd_ODHG_1us);
+        h_pulseArea_phd_ODHG_int_1us->Fill(Int_window_ODHG_1us);
+        h_pulseArea_phd_ODHG_int_2us->Fill(Int_window_ODHG_2us);
+        h_pulseArea_phd_ODHG_int_3us->Fill(Int_window_ODHG_3us);
+        h_pulseArea_phd_ODHG_int_30us->Fill(Int_window_ODHG_30us);
+
+        h_pulseArea_phd_ODHG_int_130us->Fill(Int_window_ODHG_130us);
+        h_pulseArea_phd_ODHG_int_230us->Fill(Int_window_ODHG_230us);
+        h_pulseArea_phd_ODHG_int_330us->Fill(Int_window_ODHG_330us);
+        h_pulseArea_phd_ODHG_int_500us->Fill(Int_window_ODHG_500us);
+
+        h_pulseArea_phd_ODHG_int_1000us->Fill(Int_window_ODHG_1000us);
+        h_pulseArea_phd_ODHG_int_1500us->Fill(Int_window_ODHG_1500us);
+        h_pulseArea_phd_ODHG_int_2000us->Fill(Int_window_ODHG_2000us);
+        h_pulseArea_phd_ODHG_int_2500us->Fill(Int_window_ODHG_2500us);
+        h_pulseArea_phd_ODHG_int_3000us->Fill(Int_window_ODHG_3000us);
+        h_pulseArea_phd_ODHG_int_3700us->Fill(Int_window_ODHG_3700us);
+
         h_pulseArea_phd_ODHG_5mus->Fill(pulseArea_phd_ODHG_5mus_temp);
         h_pulseArea_phd_ODHG_310us->Fill(pulseArea_phd_ODHG_310us);
         h_pulseArea_phd_ODHG->Fill(total_pulse_areaHG);
@@ -775,22 +917,40 @@ void load_chain(TString txtFileList, TChain* chain){
         exit(-1);
     }
 }
-void load_chain_by_name(TString inputName, TChain* chain, int nfiles){
+void load_chain_by_name(TString inputName, TChain* chain, int nfiles, int position){
 
     cout << "Loading file names from "<<inputName << " into "<<chain->GetName()<<endl;
 
     if (inputName.Contains("AmLi")){
-        for (int i=0; i<nfiles;i++){
-            char name[150];
-            sprintf(name,"/projecta/projectdirs/lz/data/MDC2/calibration/LZAP-3.10.0-PHYSICS-3.10.0/AmLi_700/lz_AmLi_700000010_%04u_lzap.root",i);
-            chain->AddFile(name);
+        if (position==1336){
+            for (int i=0; i<nfiles;i++){
+                char name[150];
+                sprintf(name,"/projecta/projectdirs/lz/data/MDC2/calibration/LZAP-3.10.0-PHYSICS-3.10.0/AmLi_%u/lz_AmLi_1336000010_%04u_lzap.root",position,i);
+                chain->AddFile(name);
+            }
+        }
+        if (position==700){
+            for (int i=0; i<nfiles;i++){
+                char name[150];
+                sprintf(name,"/projecta/projectdirs/lz/data/MDC2/calibration/LZAP-3.10.0-PHYSICS-3.10.0/AmLi_%u/lz_AmLi_700000010_%04u_lzap.root",position,i);
+                chain->AddFile(name);
+            }
         }
     }
     else if (inputName.Contains("Na")){
-        for (int i=0; i<nfiles;i++){
-            char name[150];
-            sprintf(name,"/projecta/projectdirs/lz/data/MDC2/calibration/LZAP-3.10.0-PHYSICS-3.10.0/Na22_700/lz_Na22_700000010_%04u_lzap.root",i);
-            chain->AddFile(name);
+        if (position==1336){
+            for (int i=0; i<nfiles;i++){
+                char name[150];
+                sprintf(name,"/projecta/projectdirs/lz/data/MDC2/calibration/LZAP-3.10.0-PHYSICS-3.10.0/Na22_%u/lz_Na22_1336000010_%04u_lzap.root",position,i);
+                chain->AddFile(name);
+            }
+        }
+        if (position==700){
+            for (int i=0; i<nfiles;i++){
+                char name[150];
+                sprintf(name,"/projecta/projectdirs/lz/data/MDC2/calibration/LZAP-3.10.0-PHYSICS-3.10.0/Na22_%u/lz_Na22_700000010_%04u_lzap.root",position,i);
+                chain->AddFile(name);
+            }
         }
     }
     else if (inputName.Contains("background")){
